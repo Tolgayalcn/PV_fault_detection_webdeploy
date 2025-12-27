@@ -5,9 +5,10 @@
 
 const CONFIG = {
     // Backend API URL - Change this to your server's address
+    // ⚠️ IMPORTANT: Update this before deploying!
     // For local testing: 'http://localhost:5000'
-    // For production: 'https://your-server.com' or 'https://your-server.com:5000'
-    API_BASE_URL: 'http://localhost:5000',
+    // For production: 'https://your-gpu-server.com:5000'
+    API_BASE_URL: 'https://YOUR_API_SERVER_URL',
     
     // API Endpoints
     ENDPOINTS: {
