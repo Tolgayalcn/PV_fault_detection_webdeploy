@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="AI-powered solar panel fault detection using YOLOv13 and SAM3">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>PV Fault Detector | AI Solar Panel Analysis</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden">
+        <div class="loading-spinner"></div>
+        <p class="loading-text" id="loading-text">Analyzing image...</p>
+        <div class="progress-bar hidden" id="progress-container">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p class="loading-subtext" id="loading-subtext"></p>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">☀️</span>
+                <span class="logo-text">PV Fault Detector</span>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-section="detect">Detect</button>
+                <button class="nav-btn" data-section="about">About</button>
+            </nav>
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                <span class="theme-icon">🌙</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Detection Section -->
+        <section id="detect-section" class="section active">
+            <div class="container">
+                <div class="hero">
+                    <h1>AI-Powered Solar Panel Fault Detection</h1>
+                    <p>Upload an image of your solar panel to detect defects, dust, snow, shade, and more using YOLOv13 + SAM3</p>
+                </div>
+
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-content">
+                        <div class="upload-icon">📤</div>
+                        <h3>Drop your image or video here</h3>
+                        <p>or click to browse</p>
+                        <p class="upload-hint">Supports: JPG, PNG, WebP, MP4, WebM, MOV (max 50MB)</p>
+                    </div>
+                    <input type="file" id="file-input" accept="image/*,video/*" hidden>
+                </div>
+
+                <!-- Camera Capture for Mobile -->
+                <div class="camera-section">
+                    <button class="camera-btn" id="camera-btn">
+                        <span>📷</span> Take Photo
+                    </button>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="preview-section" class="preview-section hidden">
+                    <div class="preview-header">
+                        <h3 id="preview-title">Selected Image</h3>
+                        <button class="clear-btn" id="clear-btn">✕ Clear</button>
+                    </div>
+                    <div class="preview-container">
+                        <img id="preview-image" src="" alt="Preview">
+                        <video id="preview-video" src="" controls hidden></video>
+                    </div>
+                    <div class="video-options hidden" id="video-options">
+                        <label>Analyze every <input type="number" id="frame-interval" value="30" min="1" max="300"> frames</label>
+                        <p class="upload-hint">Lower = more frames analyzed (slower), Higher = fewer frames (faster)</p>
+                    </div>
+                    <button class="analyze-btn" id="analyze-btn">
+                        <span class="btn-icon">🔍</span>
+                        <span class="btn-text">Analyze Panel</span>
+                    </button>
+                </div>
+
+                <!-- Results Section -->
+                <div id="results-section" class="results-section hidden">
+                    <div class="results-header">
+                        <h2>Detection Results</h2>
+                        <div class="results-actions">
+                            <button class="action-btn" id="download-btn">
+                                <span>⬇️</span> Download
+                            </button>
+                            <button class="action-btn" id="new-analysis-btn">
+                                <span>🔄</span> New Analysis
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="results-grid">
+                        <!-- Original Image -->
+                        <div class="result-card">
+                            <h4>Original Image</h4>
+                            <div class="result-image-container">
+                                <img id="original-result" src="" alt="Original">
+                            </div>
+                        </div>
+
+                        <!-- Detection Result -->
+                        <div class="result-card">
+                            <h4>Detection Result</h4>
+                            <div class="result-image-container">
+                                <img id="detection-result" src="" alt="Detection">
+                            </div>
+                        </div>
+
+                        <!-- Segmentation Result -->
+                        <div class="result-card full-width">
+                            <h4>Segmentation Mask</h4>
+                            <div class="result-image-container">
+                                <img id="segmentation-result" src="" alt="Segmentation">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detections List -->
+                    <div class="detections-list" id="detections-list">
+                        <h3>Detected Issues</h3>
+                        <div class="detections-container" id="detections-container">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="stats-grid" id="stats-grid">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about-section" class="section hidden">
+            <div class="container">
+                <div class="about-content">
+                    <h1>About PV Fault Detector</h1>
+                    
+                    <div class="about-card">
+                        <h3>🤖 AI Technology</h3>
+                        <p>Our system uses state-of-the-art deep learning models:</p>
+                        <ul>
+                            <li><strong>YOLOv13-L</strong> - Hypergraph-Enhanced object detection (77.5% mAP)</li>
+                            <li><strong>RT-DETR</strong> - Transformer-based accurate classification</li>
+                            <li><strong>SAM3</strong> - Segment Anything Model for precise segmentation</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-card">
+                        <h3>🔍 Detectable Faults</h3>
+                        <div class="fault-grid">
+                            <div class="fault-item">
+                                <span class="fault-icon">✅</span>
+                                <span>Non Defective</span>
+                            </div>
+                            <div class="fault-item">
+                                <span class="fault-icon">⚠️</span>
+                                <span>Defective</span>
+                            </div>
+                            <div class="fault-item">
+                                <span class="fault-icon">🌫️</span>
+                                <span>Dust</span>
+                            </div>
+                            <div class="fault-item">
+                                <span class="fault-icon">🐦</span>
+                                <span>Bird Droppings</span>
+                            </div>
+                            <div class="fault-item">
+                                <span class="fault-icon">❄️</span>
+                                <span>Snow</span>
+                            </div>
+                            <div class="fault-item">
+                                <span class="fault-icon">🌑</span>
+                                <span>Shade</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="about-card">
+                        <h3>📱 Features</h3>
+                        <ul>
+                            <li>Works on mobile and desktop</li>
+                            <li>Camera capture support</li>
+                            <li>Fast GPU-accelerated inference</li>
+                            <li>Detailed segmentation masks</li>
+                            <li>Downloadable results</li>
+                        </ul>
+                    </div>
+
+                    <div class="about-card">
+                        <h3>🔒 Privacy</h3>
+                        <p>Your images are processed securely and are not stored permanently. All analysis is done in real-time and results are returned immediately.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2025 PV Fault Detector | Powered by YOLOv13 + SAM3</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
